@@ -109,6 +109,7 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
     return [
       'allow_guest_checkout' => TRUE,
       'allow_registration' => FALSE,
+      'email_only' => FALSE,
     ] + parent::defaultConfiguration();
   }
 
@@ -127,6 +128,10 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
     }
     else {
       $summary .= $this->t('Registration: Not allowed');
+    }
+
+    if (!empty($this->configuration['email_only'])) {
+      $summary .= '<br>' . $this->t('Use E-mail only for registration and login');
     }
 
     return $summary;
@@ -148,6 +153,13 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       '#default_value' => $this->configuration['allow_registration'],
     ];
 
+    $form['email_only'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Use E-Mail only for registration and login'),
+      '#description' => $this->t('If checked, the name field will not be shown and the e-mail will be used as username.'),
+      '#default_value' => $this->configuration['email_only'],
+    ];
+
     return $form;
   }
 
@@ -161,6 +173,7 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       $values = $form_state->getValue($form['#parents']);
       $this->configuration['allow_guest_checkout'] = !empty($values['allow_guest_checkout']);
       $this->configuration['allow_registration'] = !empty($values['allow_registration']);
+      $this->configuration['email_only'] = !empty($values['email_only']);
     }
   }
 
@@ -189,7 +202,7 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
     ];
     $pane_form['returning_customer']['name'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Username'),
+      '#title' => $this->configuration['email_only'] ? $this->t('E-Mail') : $this->t('Username'),
       '#size' => 60,
       '#maxlength' => UserInterface::USERNAME_MAX_LENGTH,
       '#attributes' => [
@@ -273,6 +286,7 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
       '#maxlength' => UserInterface::USERNAME_MAX_LENGTH,
       '#description' => $this->t("Several special characters are allowed, including space, period (.), hyphen (-), apostrophe ('), underscore (_), and the @ sign."),
       '#required' => FALSE,
+      '#access' => empty($this->configuration['email_only']),
       '#attributes' => [
         'class' => ['username'],
         'autocorrect' => 'off',
@@ -350,13 +364,13 @@ class Login extends CheckoutPaneBase implements CheckoutPaneInterface, Container
 
       case 'register':
         $email = $values['register']['mail'];
-        $username = $values['register']['name'];
+        $username = $this->configuration['email_only'] ? $values['register']['mail'] : $values['register']['name'];
         $password = trim($values['register']['password']);
         if (empty($email)) {
           $form_state->setError($pane_form['register']['mail'], $this->t('Email field is required.'));
           return;
         }
-        if (empty($username)) {
+        if (empty($this->configuration['email_only']) && empty($username)) {
           $form_state->setError($pane_form['register']['name'], $this->t('Username field is required.'));
           return;
         }

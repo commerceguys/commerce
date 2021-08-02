@@ -69,6 +69,9 @@ commerce_checkout.commerce_checkout_pane.login:
     allow_registration:
       type: boolean
       label: 'Allow registration'
+    email_only:
+      type: boolean
+      label: 'E-Mail only registration'
 
 commerce_checkout.commerce_checkout_pane.order_summary:
   type: commerce_checkout_pane_configuration
